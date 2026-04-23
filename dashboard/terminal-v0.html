@@ -262,9 +262,9 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 
 /* ─── ACTIVITY PANEL ─── */
 .activity-panel{max-height:0;overflow:hidden;transition:max-height .22s steps(4);background:var(--paper-dim);border:1px solid var(--line);border-top:0;margin:0;padding:0}
-.activity-panel.open{max-height:200px;overflow-y:auto}
+.activity-panel.open{max-height:180px;overflow-y:auto}
 .activity-panel-head{display:flex;align-items:center;padding:4px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
-.activity-log-body{padding:4px 12px;overflow-y:auto;max-height:160px}
+.activity-log-body{padding:4px 12px;overflow-y:auto;max-height:140px}
 .activity-log-body::-webkit-scrollbar{width:8px}.activity-log-body::-webkit-scrollbar-track{background:var(--paper-dim)}.activity-log-body::-webkit-scrollbar-thumb{background:var(--line-dim)}
 
 /* ─── MODEL METER ─── */
@@ -1443,7 +1443,7 @@ function renderActivityLog() {
   const body = el('activity-log-body');
   if (!body) return;
   body.innerHTML = '';
-  for (const e of _activityLog.slice(0, 20)) {
+  for (const e of _activityLog.slice(0, 8)) {
     const line = document.createElement('div');
     line.style.cssText = 'font-family:var(--font-mono);font-size:11px;line-height:1.5;padding:2px 0;border-bottom:1px solid var(--line-dim);';
     const kindColors = {tool:'var(--amber)',think:'var(--teal)',system:'var(--slate)',model:'var(--signal)',ok:'var(--phosphor)',err:'var(--signal)'};
@@ -2037,9 +2037,8 @@ function renderActivityItem() {
 
 let _activityCycleTimer = null;
 
-// Click ticker to open console drawer
+// Activity ticker click is now wired in init() to toggleActivityLog()
 function wireActivityTicker() {
-  el('activity-ticker').addEventListener('click', () => toggleDrawer('console'));
   pollActivity();
   setInterval(pollActivity, _activityPollMs);
 }
