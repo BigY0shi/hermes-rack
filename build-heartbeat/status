@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Hermes Build Status — human-readable
+# Write this before long operations.
+# Usage: status WORKING "Compiling Android... (eta 5min, INTERRUPT:NOT_SAFE)"
+
+DIR=~/projects/hermes-rack/build-heartbeat
+mkdir -p "$DIR"
+
+if [ $# -lt 2 ]; then
+  echo "Usage: status {WORKING|WAITING|DONE|FAULT} \"message [INTERRUPT:{SAFE|OK|NOT_SAFE}]\""
+  exit 1
+fi
+
+STATE="$1"
+shift
+MSG="$*"
+
+TS=$(date -Iseconds)
+echo "${TS}  ${STATE}  ${MSG}" > "$DIR/status.md"
+echo "[hermes-status] ${STATE}: ${MSG}"

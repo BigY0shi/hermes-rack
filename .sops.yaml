@@ -1,0 +1,13 @@
+# SOPS configuration for Hermes Rack secrets
+# Public key: age1w7guzvsr4d56wjezymdz2c06ed6pnxnnl6n2uts02p2rf2xtj35s0693dh
+# Store the AGE-SECRET-KEY securely (paper backup recommended)
+
+creation_rules:
+  - path_regex: secrets/.*\.yaml$
+    age: age1w7guzvsr4d56wjezymdz2c06ed6pnxnnl6n2uts02p2rf2xtj35s0693dh
+
+  - path_regex: secrets/.*\.json$
+    age: age1w7guzvsr4d56wjezymdz2c06ed6pnxnnl6n2uts02p2rf2xtj35s0693dh
+
+  - path_regex: secrets/bounty/.*$
+    age: age1w7guzvsr4d56wjezymdz2c06ed6pnxnnl6n2uts02p2rf2xtj35s0693dh

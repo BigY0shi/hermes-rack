@@ -1,0 +1,33 @@
+# Secrets and credentials
+secrets/
+*.secret
+*.key
+*.pem
+.env
+.env.*
+
+# SOPS / Age
+.config/sops/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Logs
+*.log
