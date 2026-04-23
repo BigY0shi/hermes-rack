@@ -157,6 +157,16 @@ def _load_models_from_config():
     return models, default_model
 
 
+def _provider_for_model(model_id: str) -> str:
+    """Look up the provider key for a given model ID from config.
+    Falls back to DEFAULT_PROVIDER if not found."""
+    models, _ = _get_models()
+    for m in models:
+        if m["id"] == model_id:
+            return m["provider"]
+    return DEFAULT_PROVIDER
+
+
 def _resolve_runtime(provider: str) -> dict:
     """Resolve base_url / api_key / api_mode for a given provider, using
     Hermes's own credential pool (OAuth, env vars, etc.)."""
@@ -827,13 +837,16 @@ def run_command(req: CommandReq):
         if not sess:
             return {"ok": False, "error": "session not found"}
         try:
-            rt = _resolve_runtime(sess.provider)
+            # Resolve the correct provider for the new model
+            new_provider = _provider_for_model(arg)
+            rt = _resolve_runtime(new_provider)
             sess.agent.switch_model(new_model=arg, new_provider=rt["provider"],
                                     api_key=rt["api_key"],
                                     base_url=rt["base_url"],
                                     api_mode=rt["api_mode"])
             sess.model = arg
-            return {"ok": True, "kind": "model", "model": arg}
+            sess.provider = rt["provider"]
+            return {"ok": True, "kind": "model", "model": arg, "provider": rt["provider"]}
         except Exception as e:
             return {"ok": False, "error": f"switch failed: {e}"}
 
