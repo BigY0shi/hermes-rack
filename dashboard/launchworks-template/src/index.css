@@ -1,0 +1,356 @@
+/* Base CSS Reset & Custom Animations */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+iconify-icon {
+  --iconify-stroke-width: 1.5;
+  display: inline-block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #09090b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #ff5500; }
+
+/* ============================================
+   BEAM ANIMATIONS
+   ============================================ */
+@keyframes beamFlow {
+  0% { stroke-dashoffset: 200; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes beamFlowReverse {
+  0% { stroke-dashoffset: -200; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes beamPulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.beam-path {
+  stroke-dasharray: 8 4;
+  stroke-dashoffset: 200;
+  animation: beamFlow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.beam-path-reverse {
+  stroke-dasharray: 8 4;
+  stroke-dashoffset: -200;
+  animation: beamFlowReverse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.beam-path-2 { animation-delay: 1s; }
+.beam-path-3 { animation-delay: 2s; }
+.beam-path-4 { animation-delay: 0.5s; }
+.beam-path-5 { animation-delay: 1.5s; }
+
+/* ============================================
+   SONAR / RADAR ANIMATIONS
+   ============================================ */
+@keyframes sonarPing {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes sonarPingDelayed {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes radarDot {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.sonar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: sonarPing 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.sonar-ring-2 { animation-delay: 0.8s; }
+.sonar-ring-3 { animation-delay: 1.6s; }
+
+/* ============================================
+   NOODLE / CONNECTOR ANIMATIONS
+   ============================================ */
+@keyframes noodleFlow {
+  0% { stroke-dashoffset: 300; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes noodleGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(249,115,22,0.3)); }
+  50% { filter: drop-shadow(0 0 8px rgba(249,115,22,0.8)); }
+}
+
+.noodle-path {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: noodleFlow 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.noodle-glow {
+  animation: noodleGlow 3s ease-in-out infinite;
+}
+
+/* ============================================
+   REVEAL / SCROLL ANIMATIONS
+   ============================================ */
+@keyframes revealFadeUp {
+  from { opacity: 0; transform: translateY(32px); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes revealFadeLeft {
+  from { opacity: 0; transform: translateX(-32px); filter: blur(6px); }
+  to { opacity: 1; transform: translateX(0); filter: blur(0); }
+}
+
+@keyframes revealFadeRight {
+  from { opacity: 0; transform: translateX(32px); filter: blur(6px); }
+  to { opacity: 1; transform: translateX(0); filter: blur(0); }
+}
+
+@keyframes revealScale {
+  from { opacity: 0; transform: scale(0.92); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+.reveal-up { animation: revealFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-left { animation: revealFadeLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-right { animation: revealFadeRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-scale { animation: revealScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ============================================
+   FLASHLIGHT / SPOTLIGHT CARD EFFECT
+   ============================================ */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(249, 115, 22, 0.06),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+.spotlight-card-border {
+  position: relative;
+}
+
+.spotlight-card-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(249, 115, 22, 0.4),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1px;
+}
+
+.spotlight-card-border:hover::after {
+  opacity: 1;
+}
+
+/* ============================================
+   ANIMATED BACKGROUND ORB
+   ============================================ */
+@keyframes driftGlow {
+  0% { transform: scale(1) translate(0, 0); opacity: 0.1; }
+  33% { transform: scale(1.1) translate(3%, 3%); opacity: 0.15; }
+  66% { transform: scale(0.9) translate(-2%, -4%); opacity: 0.12; }
+  100% { transform: scale(1) translate(0, 0); opacity: 0.1; }
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 0;
+  animation: driftGlow 20s infinite alternate ease-in-out;
+  pointer-events: none;
+}
+
+/* ============================================
+   FLOATING ANIMATIONS
+   ============================================ */
+.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+.animate-float-med { animation: float-slow 6s ease-in-out infinite reverse; }
+.animate-float-fast { animation: float-slow 4s ease-in-out infinite; }
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15px) scale(1.02); }
+}
+
+/* Node Animations */
+.node-anim { animation: nodeFloat 4s ease-in-out infinite; }
+.node-anim:nth-child(even) { animation-delay: 2s; }
+.node-anim.center-y { animation: nodeFloatCenter 4s ease-in-out infinite; }
+@keyframes nodeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes nodeFloatCenter {
+  0%, 100% { transform: translateY(-50%) translateY(0); }
+  50% { transform: translateY(-50%) translateY(-8px); }
+}
+
+/* ============================================
+   GRID / BACKGROUND PATTERN
+   ============================================ */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: linear-gradient(to right, rgba(255, 85, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 85, 0, 0.02) 1px, transparent 1px);
+}
+
+/* ============================================
+   DATA ROW HIGHLIGHTS
+   ============================================ */
+@keyframes highlightRow1 {
+  0%, 25%, 100% { background-color: transparent; border-color: transparent; }
+  5%, 20% { background-color: rgba(249, 115, 22, 0.08); border-color: rgba(249, 115, 22, 0.4); }
+}
+@keyframes highlightRow2 {
+  0%, 25%, 33%, 58%, 100% { background-color: transparent; border-color: transparent; }
+  38%, 53% { background-color: rgba(249, 115, 22, 0.08); border-color: rgba(249, 115, 22, 0.4); }
+}
+@keyframes highlightRow3 {
+  0%, 58%, 66%, 91%, 100% { background-color: transparent; border-color: transparent; }
+  71%, 86% { background-color: rgba(249, 115, 22, 0.08); border-color: rgba(249, 115, 22, 0.4); }
+}
+@keyframes pulseSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============================================
+   MISC ANIMATIONS
+   ============================================ */
+@keyframes flow {
+  0% { stroke-dashoffset: 20; opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { stroke-dashoffset: 0; opacity: 0.2; }
+}
+.line-anim { animation: flow 3s linear infinite; }
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(-1deg); }
+}
+@keyframes floatFast {
+  0%, 100% { transform: translateY(0px) rotate(2deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+@keyframes barGrow1 {
+  0%, 100% { height: 30%; }
+  50% { height: 42%; }
+}
+@keyframes barGrow2 {
+  0%, 100% { height: 50%; }
+  50% { height: 68%; }
+}
+@keyframes barGrow3 {
+  0%, 100% { height: 78%; }
+  50% { height: 96%; }
+}
+@keyframes barGrow4 {
+  0%, 100% { height: 40%; }
+  50% { height: 24%; }
+}
+.float-slow { animation: floatSlow 6s ease-in-out infinite; }
+.float-fast { animation: floatFast 5s ease-in-out infinite; }
+.pulse-soft { animation: pulseSoft 3s ease-in-out infinite; }
+.bar-1 { animation: barGrow1 2.8s ease-in-out infinite; }
+.bar-2 { animation: barGrow2 2.8s ease-in-out infinite 0.15s; }
+.bar-3 { animation: barGrow3 2.8s ease-in-out infinite 0.3s; }
+.bar-4 { animation: barGrow4 2.8s ease-in-out infinite 0.45s; }
+
+/* ============================================
+   TESTIMONIAL / CARD EFFECTS
+   ============================================ */
+.kinetic-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kinetic-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 85, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(255, 85, 0, 0.08), 0 0 0 1px rgba(255, 85, 0, 0.1);
+}
+
+.anim-ring {
+  stroke-dasharray: 60 30;
+  animation: ring-spin 6s linear infinite;
+  transform-origin: center;
+}
+@keyframes ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pan-image { animation: panImage 30s ease-in-out infinite alternate; }
+@keyframes panImage {
+  0% { object-position: 0% 50%; }
+  100% { object-position: 100% 50%; }
+}
+
+.bg-noise-layer {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+}
+
+/* ============================================
+   PERSPECTIVE UTILITIES
+   ============================================ */
+.perspective-1000 { perspective: 1000px; }
+.scene-container { perspective: 2000px; transform-style: preserve-3d; }
