@@ -93,10 +93,68 @@ HERMES_HOME = Path.home() / ".hermes"
 UPLOAD_DIR  = HERMES_HOME / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# Cache models list (refreshed every 60s)
+_MODELS_CACHE_TIME = 0
+_MODELS_CACHE_TTL = 60
+
+def _get_models():
+    """Get cached models list, refreshing if stale."""
+    global _MODELS_CACHE_TIME
+    import time as _t
+    now = _t.time()
+    if (now - _MODELS_CACHE_TIME) > _MODELS_CACHE_TTL:
+        _MODELS_CACHE_TIME = now
+    return _load_models_from_config()
+
 STARTED_AT = time.time()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent  # .../dashboard
 INDEX_HTML = STATIC_DIR / "terminal-v0.html"
+
+# ── Load models from Hermes config ──────────────────────────────────────────
+def _load_models_from_config():
+    """Read ~/.hermes/config.yaml and return a flat list of available models
+    grouped by provider, plus the default model."""
+    models = []
+    default_model = DEFAULT_MODEL
+    try:
+        import yaml
+        cfg_path = HERMES_HOME / "config.yaml"
+        if cfg_path.exists():
+            with open(cfg_path) as f:
+                cfg = yaml.safe_load(f) or {}
+            # Default model from top-level config
+            if cfg.get("model", {}).get("default"):
+                default_model = cfg["model"]["default"]
+            # Providers section
+            providers = cfg.get("providers", {})
+            if isinstance(providers, dict):
+                for prov_key, prov in providers.items():
+                    if not isinstance(prov, dict):
+                        continue
+                    prov_name = prov.get("name", prov_key)
+                    prov_models = prov.get("models", [])
+                    prov_default = prov.get("default_model", "")
+                    for m in prov_models:
+                        models.append({
+                            "id": m,
+                            "provider": prov_key,
+                            "provider_name": prov_name,
+                            "is_default": m == default_model or m == prov_default,
+                        })
+            # Deduplicate by model id
+            seen = set()
+            deduped = []
+            for m in models:
+                if m["id"] not in seen:
+                    seen.add(m["id"])
+                    deduped.append(m)
+            models = deduped
+    except Exception as e:
+        print(f"[hermes-bridge] WARN: could not load models from config: {e}", file=sys.stderr)
+    if not models:
+        models.append({"id": default_model, "provider": DEFAULT_PROVIDER, "provider_name": DEFAULT_PROVIDER, "is_default": True})
+    return models, default_model
 
 
 def _resolve_runtime(provider: str) -> dict:
@@ -188,23 +246,91 @@ app.add_middleware(
 )
 
 
+@app.get("/activity")
+def activity():
+    """Return recent activity events for the activity ticker. Polls session
+    state to surface what's currently happening."""
+    from datetime import datetime, timezone
+    events = []
+    with SESSIONS_LOCK:
+        for sid, sess in SESSIONS.items():
+            events.append({
+                "event_type": "session_active",
+                "session_id": sid,
+                "model": sess.agent.model,
+                "turns": sess.turns,
+                "created_at": sess.created_at,
+                "message": f"session {sid[:12]}… · {sess.agent.model} · {sess.turns} turns",
+            })
+    return {
+        "ok": True,
+        "uptime_s": int(time.time() - STARTED_AT),
+        "events": events,
+        "bridge_ok": True,
+    }
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "uptime_s": int(time.time() - STARTED_AT)}
 
 
+@app.get("/models")
+def list_models():
+    """Return all available models from Hermes config, grouped by provider."""
+    models, default = _get_models()
+    # Resolve current model for each active session
+    current_models = {}
+    with SESSIONS_LOCK:
+        for sid, sess in SESSIONS.items():
+            current_models[sid] = sess.agent.model
+    return {
+        "ok": True,
+        "default": default,
+        "models": models,
+        "current_session_models": current_models,
+    }
+
+
 @app.get("/status")
 def status():
+    models, default = _get_models()
+    # Current model for each session
+    current = {}
+    with SESSIONS_LOCK:
+        for sid, sess in SESSIONS.items():
+            current[sid] = sess.agent.model
     return {
         "ok": True,
         "uptime_s": int(time.time() - STARTED_AT),
-        "default_model": DEFAULT_MODEL,
+        "default_model": default,
         "default_provider": DEFAULT_PROVIDER,
         "hermes_home": str(HERMES_HOME),
         "agent_dir": str(HERMES_AGENT_DIR),
         "session_count": len(SESSIONS),
         "listen": f"{LISTEN_HOST}:{LISTEN_PORT}",
+        "models": models,
     }
+
+
+@app.get("/activity")
+def activity():
+    """Return recent activity events for the activity ticker. Polls session
+    state to surface what's currently happening."""
+    from datetime import datetime
+    events = []
+    with SESSIONS_LOCK:
+        for sid, sess in SESSIONS.items():
+            info = sess.info()
+            st = info.get("status", "?")
+            model = info.get("model", "?")
+            turns = info.get("turn_count", 0)
+            ts = datetime.now().strftime("%H:%M:%S")
+            if st == "streaming":
+                events.append({"ts": ts, "kind": "thinking", "text": f"Session {sid[:8]}… streaming ({model})", "session": sid})
+            elif st == "active":
+                events.append({"ts": ts, "kind": "ok", "text": f"Session {sid[:8]}… idle ({model}, {turns} turns)", "session": sid})
+    return {"ok": True, "events": events}
 
 
 @app.get("/sessions")

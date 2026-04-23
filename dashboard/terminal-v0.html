@@ -257,7 +257,19 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
   .drawer-side{width:min(300px,88vw)}
   .drawer-bottom{height:min(46vh,280px)}
   .drawer-bottom .drawer-body{font-size:15px}
+  .activity-panel{max-height:120px}
 }
+
+/* ─── ACTIVITY PANEL ─── */
+.activity-panel{max-height:0;overflow:hidden;transition:max-height .22s steps(4);background:var(--paper-dim);border:1px solid var(--line);border-top:0;margin:0;padding:0}
+.activity-panel.open{max-height:200px;overflow-y:auto}
+.activity-panel-head{display:flex;align-items:center;padding:4px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
+.activity-log-body{padding:4px 12px;overflow-y:auto;max-height:160px}
+.activity-log-body::-webkit-scrollbar{width:8px}.activity-log-body::-webkit-scrollbar-track{background:var(--paper-dim)}.activity-log-body::-webkit-scrollbar-thumb{background:var(--line-dim)}
+
+/* ─── MODEL METER ─── */
+#model-meter:active,#model-meter:hover{background:var(--paper-dim);border-radius:2px}
+#model-meter .val{transition:color .15s steps(3)}
 </style>
 </head>
 <body>
@@ -270,6 +282,10 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
     </div>
     <div class="now"><span class="label">NOW</span><span id="now-text">CONNECTING…</span></div>
     <div class="meters">
+      <div class="meter" id="model-meter" style="cursor:pointer" title="Click to switch model">
+        <div class="lbl">MODEL</div>
+        <div class="val" id="meter-model">—</div>
+      </div>
       <div class="meter"><div class="lbl">TURNS</div><div class="val" id="meter-turns">0</div></div>
       <div class="meter"><div class="lbl">UP</div><div class="val" id="meter-up">—</div></div>
     </div>
@@ -287,6 +303,16 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
     <span class="tag" style="border-right:1px solid var(--line);padding-right:8px">ACTIVITY</span>
     <span class="led" id="activity-led" style="width:6px;height:6px;background:var(--teal);box-shadow:0 0 4px var(--teal)"></span>
     <span id="activity-text" style="color:var(--graphite);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1;min-width:0">—</span>
+  </div>
+
+  <!-- Activity Log Panel (collapsible) -->
+  <div class="activity-panel" id="activity-panel">
+    <div class="activity-panel-head">
+      <span class="led" style="width:6px;height:6px;border-radius:50%;background:var(--phosphor);box-shadow:0 0 4px var(--phosphor)"></span>
+      <span style="font-family:var(--font-ui);font-size:var(--label-size);letter-spacing:var(--label-tracking);text-transform:uppercase;color:var(--graphite);margin-left:8px">Activity Log</span>
+      <button style="all:unset;cursor:pointer;font-family:var(--font-ui);font-size:var(--label-size);letter-spacing:.1em;text-transform:uppercase;color:var(--slate);margin-left:auto;padding:2px 8px;border:1px solid var(--line);background:var(--paper)" onclick="toggleActivityLog()">✕</button>
+    </div>
+    <div class="activity-log-body" id="activity-log-body"></div>
   </div>
 
   <section class="panel">
@@ -379,9 +405,25 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
     <input type="text" id="cfg-session" placeholder="(auto on first hail)" autocomplete="off" />
     <label>Preferred model (optional)</label>
     <input type="text" id="cfg-model" placeholder="anthropic/claude-opus-4.6" autocomplete="off" />
+    <div class="hint">Model ID from your Hermes config. Auto-detected from bridge if blank.</div>
     <div class="buttons">
       <button id="btn-cancel">Cancel</button>
       <button class="primary" id="btn-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Model Switcher Overlay -->
+<div class="overlay" id="model-overlay">
+  <div class="modal" style="max-height:80vh;display:flex;flex-direction:column">
+    <h2>Switch Model</h2>
+    <div id="model-list" style="flex:1;overflow-y:auto;margin:8px 0"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input type="text" id="model-custom-input" placeholder="Or type a model ID…" style="flex:1;font-family:var(--font-mono);font-size:13px;padding:8px 10px;background:var(--paper-dim);border:1px solid var(--line);color:var(--graphite)" />
+      <button id="model-custom-btn" style="all:unset;cursor:pointer;font-family:var(--font-ui);font-weight:700;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:8px 18px;background:var(--signal);color:var(--paper);border:1px solid var(--signal-dim)">SWITCH</button>
+    </div>
+    <div class="buttons" style="margin-top:12px">
+      <button id="model-cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -417,6 +459,16 @@ function init() {
   el('btn-save').addEventListener('click', saveSettings);
   el('btn-cancel').addEventListener('click', closeSettings);
   el('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeSettings(); });
+
+  // Model switcher
+  el('model-meter').addEventListener('click', openModelSwitcher);
+  el('model-overlay').addEventListener('click', e => { if (e.target.id === 'model-overlay') closeModelSwitcher(); });
+  el('model-cancel').addEventListener('click', closeModelSwitcher);
+  el('model-custom-btn').addEventListener('click', () => { const v = el('model-custom-input').value.trim(); if (v) switchModel(v); });
+  el('model-custom-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const v = el('model-custom-input').value.trim(); if (v) switchModel(v); } });
+
+  // Activity ticker click opens activity log instead of console
+  el('activity-ticker').addEventListener('click', () => toggleActivityLog());
 
   el('btn-attach').addEventListener('click', () => el('file-input').click());
   el('file-input').addEventListener('change', e => {
@@ -460,6 +512,7 @@ function init() {
     if (guess) localStorage.setItem(LS.BRIDGE, guess);
   }
   pingBridge(); setInterval(pingBridge, 10000);
+  loadModels();                        // populate model list for switcher
   if (!localStorage.getItem(LS.BRIDGE)) setTimeout(openSettings, 300);
 
   input.focus();
@@ -553,6 +606,7 @@ function newTape() {
   localStorage.removeItem(LS.SID); localStorage.removeItem(LS.HIST);
   history = []; pendingAttachments = []; renderAttachments();
   refreshSessionIdLabel(); renderAll();
+  pushActivity('system', 'New tape — session cleared');
 }
 
 /* Hard reset: cancel any in-flight turn on the bridge, clear server session,
@@ -564,6 +618,7 @@ async function hardReset() {
 
   setStatus('RESET · cancelling turn…', 'error');
   if (window.logConsole) window.logConsole('reset · sending interrupt + clear', 'err');
+  pushActivity('system', 'Hard reset — cancelling turn…');
 
   try {
     if (sid) {
@@ -590,6 +645,7 @@ async function hardReset() {
 
   setStatus('IDLE — reset. Next HAIL starts fresh.', 'ok');
   if (window.logConsole) window.logConsole('reset · done. new session on next message', 'ok');
+  pushActivity('ok', 'Reset complete — ready for new session');
   input.focus();
 }
 
@@ -622,6 +678,21 @@ async function pingBridge() {
     const up = j.uptime_s || 0;
     el('meter-up').textContent = up<60?`${up}s`:up<3600?`${Math.floor(up/60)}m`:up<86400?`${Math.floor(up/3600)}h`:`${Math.floor(up/86400)}d`;
     if (j.models && Array.isArray(j.models)) { modelListCache = j.models; }
+    // Also update the model meter with current/default
+    const curModel = localStorage.getItem(LS.MODEL) || j.default_model || j.current_model || '';
+    if (curModel) {
+      const short = curModel.includes('/') ? curModel.split('/').pop() : curModel;
+      el('meter-model').textContent = short;
+    }
+    // Update activity ticker with server state
+    const actTicker = el('activity-ticker');
+    const actText = el('activity-text');
+    if (!suppressStatus && actTicker && actText) {
+      const sessCount = j.session_count || 0;
+      const modelShort = (j.default_model || 'local').includes('/') ? (j.default_model || 'local').split('/').pop() : (j.default_model || 'local');
+      actText.textContent = `${modelShort} · ${sessCount} session${sessCount !== 1 ? 's' : ''} · up ${el('meter-up').textContent}`;
+      actTicker.style.display = 'flex';
+    }
     if (!suppressStatus) {
       const modelLine = j.default_model || j.current_model || 'local';
       const storedModel = localStorage.getItem(LS.MODEL);
@@ -1075,6 +1146,7 @@ async function send(text) {
 
   streaming = true;
   setStatus('TX · awaiting stream…','thinking');
+  pushActivity('system', `HAIL · ${text.slice(0,80)}${text.length > 80 ? '…' : ''}`);
   el('btn-send').textContent = 'STOP ✕';
   el('btn-send').classList.add('stopping');
   el('btn-send').disabled = false;  // keep enabled so user can press stop
@@ -1146,6 +1218,7 @@ async function send(text) {
             toolStrip.appendChild(t);
             if (!seenTools.includes(j.name)) seenTools.push(j.name);
             setStatus(j.preview ? `TOOL · ${j.name} · ${j.preview.slice(0,60)}` : `TOOL · ${j.name}`, 'thinking');
+            pushActivity('tool', `${j.name}${j.preview ? ' · ' + j.preview.slice(0,80) : ''}`);
             if (window.logConsole) window.logConsole('tool · '+j.name+(j.preview?' → '+j.preview:' → start'), 'warn');
             scrollBottom();
           } catch {}
@@ -1157,6 +1230,7 @@ async function send(text) {
           } catch {}
         } else if (event === 'thinking') {
           setStatus('THINKING…', 'thinking');
+          pushActivity('think', 'Thinking…');
         } else if (event === 'reasoning') {
           try {
             const j = JSON.parse(data);
@@ -1170,7 +1244,7 @@ async function send(text) {
           } catch {}
           done = true; break;
         } else if (event === 'tool_done') {
-          try { const j = JSON.parse(data); if (window.logConsole && j && j.name) window.logConsole('tool · '+j.name+' → done', 'ok'); } catch {}
+          try { const j = JSON.parse(data); if (window.logConsole && j && j.name) window.logConsole('tool · '+j.name+' → done', 'ok'); pushActivity('ok', j.name + ' → done'); } catch {}
         } else if (event === 'done') {
           try {
             const j = JSON.parse(data);
@@ -1189,6 +1263,7 @@ async function send(text) {
     history.push({role:'assistant', content: acc || '(empty)'});
     persist(); updateTurns();
     setStatus('IDLE — standing by','ok'); pingBridge();
+    pushActivity('ok', 'Response complete');
   } catch (err) {
     cursor.remove();
     // Stream broke, but the bridge is probably still working. Poll the
@@ -1238,6 +1313,149 @@ async function send(text) {
     el('btn-send').classList.remove('stopping');
     input.focus();
   }
+}
+
+/* ─── Model Switcher ─── */
+let modelsList = [];
+let modelsByProvider = {};
+
+async function loadModels() {
+  const bridge = localStorage.getItem(LS.BRIDGE);
+  if (!bridge) return;
+  try {
+    const r = await fetch(bridge + '/models', {signal: AbortSignal.timeout(6000)});
+    const j = await r.json();
+    if (j.ok && Array.isArray(j.models)) {
+      modelsList = j.models;
+      // Group by provider for display
+      modelsByProvider = {};
+      j.models.forEach(m => {
+        const p = m.provider_name || m.provider;
+        if (!modelsByProvider[p]) modelsByProvider[p] = [];
+        modelsByProvider[p].push(m);
+      });
+    }
+    if (j.default) {
+      if (!localStorage.getItem(LS.MODEL)) localStorage.setItem(LS.MODEL, j.default);
+    }
+    // Update meter
+    const cur = localStorage.getItem(LS.MODEL) || j.default || '—';
+    const short = cur.includes('/') ? cur.split('/').pop() : cur;
+    el('meter-model').textContent = short;
+    modelListCache = (j.models || []).map(m => ({id: m.id, name: m.id}));
+    return j;
+  } catch (e) {
+    logConsole('models · load failed: '+e.message, 'err');
+  }
+}
+
+function openModelSwitcher() {
+  const overlay = el('model-overlay');
+  const list = el('model-list');
+  overlay.classList.add('on');
+
+  // Build provider-grouped list
+  list.innerHTML = '';
+  const currentModel = localStorage.getItem(LS.MODEL) || '';
+
+  // Custom input prefill
+  el('model-custom-input').value = currentModel;
+
+  if (!modelsList.length) {
+    list.innerHTML = '<div class="drawer-empty">Loading models…</div>';
+    loadModels().then(() => { if (overlay.classList.contains('on')) openModelSwitcher(); });
+    return;
+  }
+
+  for (const [prov, models] of Object.entries(modelsByProvider)) {
+    const provHeader = document.createElement('div');
+    provHeader.style.cssText = 'font-family:var(--font-ui);font-size:10px;letter-spacing:var(--label-tracking);text-transform:uppercase;color:var(--slate);padding:6px 0 2px;border-bottom:1px solid var(--line);margin-top:10px';
+    provHeader.textContent = prov;
+    list.appendChild(provHeader);
+
+    models.forEach(m => {
+      const row = document.createElement('div');
+      const isActive = m.id === currentModel;
+      row.className = 'drawer-row' + (isActive ? ' active' : '');
+      const shortName = m.id.includes('/') ? m.id.split('/').pop() : m.id;
+      row.innerHTML = `<div class="name">${isActive ? '● ' : ''}${escapeHtml(m.id)}</div>` +
+                       `<div class="meta">${prov}${m.is_default ? ' · DEFAULT' : ''}</div>`;
+      row.onclick = () => switchModel(m.id);
+      list.appendChild(row);
+    });
+  }
+}
+
+async function switchModel(modelId) {
+  if (!modelId) return;
+  localStorage.setItem(LS.MODEL, modelId);
+  const short = modelId.includes('/') ? modelId.split('/').pop() : modelId;
+  el('meter-model').textContent = short;
+  refreshSessionIdLabel();
+
+  // Tell bridge
+  const bridge = localStorage.getItem(LS.BRIDGE);
+  const sid = localStorage.getItem(LS.SID);
+  if (bridge) {
+    try {
+      const resp = await fetch(bridge + '/command', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({command:`/model ${modelId}`, session_id: sid || null}),
+      });
+      const j = await resp.json();
+      if (j.ok) {
+        appendMsg('system', `✓ Model switched to ${modelId}`);
+        logConsole('model · switched to ' + modelId, 'ok');
+      } else {
+        appendMsg('system', `⚠ Model set to ${modelId}. Bridge: ${j.error||'?'}`);
+        logConsole('model · bridge error: '+(j.error||'?'), 'err');
+      }
+    } catch(e) {
+      appendMsg('system', `⚠ Set model to ${modelId}. Bridge offline.`);
+    }
+  }
+
+  // Close overlay, flash the meter
+  el('model-overlay').classList.remove('on');
+  el('model-meter').style.background = 'var(--signal)';
+  setTimeout(() => { el('model-meter').style.background = ''; }, 600);
+  if (!streaming) pingBridge();
+}
+
+function closeModelSwitcher() {
+  el('model-overlay').classList.remove('on');
+}
+
+/* ─── Activity Log (between ambient bar and panel) ─── */
+let _activityLog = [];    // {ts, kind, text} — last N events
+
+function pushActivity(kind, text) {
+  const ts = new Date();
+  const entry = {ts: `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`, kind, text};
+  _activityLog.unshift(entry);
+  if (_activityLog.length > 50) _activityLog.length = 50;
+  renderActivityLog();
+}
+
+function renderActivityLog() {
+  const panel = el('activity-panel');
+  if (!panel) return;
+  const body = el('activity-log-body');
+  if (!body) return;
+  body.innerHTML = '';
+  for (const e of _activityLog.slice(0, 20)) {
+    const line = document.createElement('div');
+    line.style.cssText = 'font-family:var(--font-mono);font-size:11px;line-height:1.5;padding:2px 0;border-bottom:1px solid var(--line-dim);';
+    const kindColors = {tool:'var(--amber)',think:'var(--teal)',system:'var(--slate)',model:'var(--signal)',ok:'var(--phosphor)',err:'var(--signal)'};
+    line.innerHTML = `<span style="color:${kindColors[e.kind]||'var(--slate)'};margin-right:6px">${e.ts}</span><span style="color:var(--graphite)">${escapeHtml(e.text)}</span>`;
+    body.appendChild(line);
+  }
+}
+
+function toggleActivityLog() {
+  const panel = el('activity-panel');
+  if (!panel) return;
+  panel.classList.toggle('open');
 }
 
 init();
