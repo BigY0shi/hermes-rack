@@ -1,0 +1,3 @@
+[submodule "phone-api"]
+	path = phone-api
+	url = git@github.com:BigY0shi/hermes-phone-api.git
