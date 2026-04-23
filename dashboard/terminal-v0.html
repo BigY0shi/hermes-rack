@@ -111,6 +111,13 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .cursor{display:inline-block;width:8px;height:14px;background:var(--graphite);margin-left:2px;vertical-align:text-bottom;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 
+/* ─── Typing indicator (bouncing dots) ─── */
+.typing-dots{display:inline-flex;align-items:center;gap:3px;margin-left:6px;vertical-align:text-bottom;height:16px}
+.typing-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--signal);animation:dotBounce .9s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-6px);opacity:1}}
+
 /* ─── INPUT AREA ─── */
 .input-area{display:flex;flex-direction:column;gap:6px}
 
@@ -637,6 +644,8 @@ async function hardReset() {
   el('btn-send').disabled = false;
   el('btn-send').textContent = 'HAIL ▸';
   el('btn-send').classList.remove('stopping');
+  // Remove any dangling typing indicator / cursor
+  document.querySelectorAll('.typing-dots, .cursor').forEach(el => el.remove());
 
   // Drop the stale session_id — a new one will be created on next HAIL
   // while keeping the visible conversation so you can reread or re-ask.
@@ -1153,7 +1162,9 @@ async function send(text) {
 
   const body = appendMsg('assistant','');
   const cursor = document.createElement('span'); cursor.className='cursor';
-  body.appendChild(cursor); scrollBottom();
+  const dots = document.createElement('span'); dots.className='typing-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  body.appendChild(cursor); body.appendChild(dots); scrollBottom();
 
   let acc = '';
   let toolStrip = null;
@@ -1259,6 +1270,7 @@ async function send(text) {
     }
 
     cursor.remove();
+    if (dots) dots.remove();
     if (!acc) body.textContent = '(empty response)';
     history.push({role:'assistant', content: acc || '(empty)'});
     persist(); updateTurns();
@@ -1266,6 +1278,7 @@ async function send(text) {
     pushActivity('ok', 'Response complete');
   } catch (err) {
     cursor.remove();
+    if (dots) dots.remove();
     // Stream broke, but the bridge is probably still working. Poll the
     // server-side history to recover the final response.
     const bridge = localStorage.getItem(LS.BRIDGE);
